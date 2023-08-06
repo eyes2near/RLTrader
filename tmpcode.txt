@@ -1,0 +1,4 @@
+import env_create
+import agent_create
+env = env_create.train_env()
+counter,ppo=agent_create.ppo(env.tf.observation_spec(), env.tf.action_spec(), env.tf.time_step_spec())

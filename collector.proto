@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+message CollectReq {
+    int32 num_episodes = 1;
+}
+
+message Episode {
+  repeated int32 types=1;
+  repeated float discounts=2;
+  repeated float rewards=3;
+  repeated float observations=4;
+  repeated int32 next_types=5;
+  repeated int64 actions=6;
+  bytes ps_infos=7;
+}
+
+message UpdatePolicyReq {
+    bytes train_step_counter = 1;
+    bytes variables = 2;
+}
+
+message UpdatePolicyResp {}
+
+message EnvSpecReq {}
+
+message EnvSpecResp {
+  bytes observation_spec = 1;
+  bytes action_spec = 2;
+  bytes time_step_spec = 3; 
+}
+
+service CollectService {
+  rpc collect (CollectReq) returns (stream Episode);
+  rpc update_policy (UpdatePolicyReq) returns (UpdatePolicyResp);
+  rpc envspecs (EnvSpecReq) returns (EnvSpecResp);
+}
