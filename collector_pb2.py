@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x63ollector.proto\"\"\n\nCollectReq\x12\x14\n\x0cnum_episodes\x18\x01 \x01(\x05\"\x89\x01\n\x07\x45pisode\x12\r\n\x05types\x18\x01 \x03(\x05\x12\x11\n\tdiscounts\x18\x02 \x03(\x02\x12\x0f\n\x07rewards\x18\x03 \x03(\x02\x12\x14\n\x0cobservations\x18\x04 \x03(\x02\x12\x12\n\nnext_types\x18\x05 \x03(\x05\x12\x0f\n\x07\x61\x63tions\x18\x06 \x03(\x03\x12\x10\n\x08ps_infos\x18\x07 \x01(\x0c\"@\n\x0fUpdatePolicyReq\x12\x1a\n\x12train_step_counter\x18\x01 \x01(\x0c\x12\x11\n\tvariables\x18\x02 \x01(\x0c\"\x12\n\x10UpdatePolicyResp\"\x0c\n\nEnvSpecReq\"T\n\x0b\x45nvSpecResp\x12\x18\n\x10observation_spec\x18\x01 \x01(\x0c\x12\x13\n\x0b\x61\x63tion_spec\x18\x02 \x01(\x0c\x12\x16\n\x0etime_step_spec\x18\x03 \x01(\x0c\x32\x91\x01\n\x0e\x43ollectService\x12\"\n\x07\x63ollect\x12\x0b.CollectReq\x1a\x08.Episode0\x01\x12\x34\n\rupdate_policy\x12\x10.UpdatePolicyReq\x1a\x11.UpdatePolicyResp\x12%\n\x08\x65nvspecs\x12\x0b.EnvSpecReq\x1a\x0c.EnvSpecRespb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x63ollector.proto\"\"\n\nCollectReq\x12\x14\n\x0cnum_episodes\x18\x01 \x01(\x05\"\x9d\x01\n\x07\x45pisode\x12\r\n\x05types\x18\x01 \x03(\x05\x12\x11\n\tdiscounts\x18\x02 \x03(\x02\x12\x0f\n\x07rewards\x18\x03 \x03(\x02\x12\x12\n\nobs_market\x18\x04 \x03(\x02\x12\x14\n\x0cobs_stateful\x18\x05 \x03(\x02\x12\x12\n\nnext_types\x18\x06 \x03(\x05\x12\x0f\n\x07\x61\x63tions\x18\x07 \x03(\x03\x12\x10\n\x08ps_infos\x18\x08 \x01(\x0c\"@\n\x0fUpdatePolicyReq\x12\x1a\n\x12train_step_counter\x18\x01 \x01(\x0c\x12\x11\n\tvariables\x18\x02 \x01(\x0c\"\x12\n\x10UpdatePolicyResp\"\x0c\n\nEnvSpecReq\"T\n\x0b\x45nvSpecResp\x12\x18\n\x10observation_spec\x18\x01 \x01(\x0c\x12\x13\n\x0b\x61\x63tion_spec\x18\x02 \x01(\x0c\x12\x16\n\x0etime_step_spec\x18\x03 \x01(\x0c\x32\x91\x01\n\x0e\x43ollectService\x12\"\n\x07\x63ollect\x12\x0b.CollectReq\x1a\x08.Episode0\x01\x12\x34\n\rupdate_policy\x12\x10.UpdatePolicyReq\x1a\x11.UpdatePolicyResp\x12%\n\x08\x65nvspecs\x12\x0b.EnvSpecReq\x1a\x0c.EnvSpecRespb\x06proto3')
 
 
 
@@ -73,15 +73,15 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _COLLECTREQ._serialized_start=19
   _COLLECTREQ._serialized_end=53
   _EPISODE._serialized_start=56
-  _EPISODE._serialized_end=193
-  _UPDATEPOLICYREQ._serialized_start=195
-  _UPDATEPOLICYREQ._serialized_end=259
-  _UPDATEPOLICYRESP._serialized_start=261
-  _UPDATEPOLICYRESP._serialized_end=279
-  _ENVSPECREQ._serialized_start=281
-  _ENVSPECREQ._serialized_end=293
-  _ENVSPECRESP._serialized_start=295
-  _ENVSPECRESP._serialized_end=379
-  _COLLECTSERVICE._serialized_start=382
-  _COLLECTSERVICE._serialized_end=527
+  _EPISODE._serialized_end=213
+  _UPDATEPOLICYREQ._serialized_start=215
+  _UPDATEPOLICYREQ._serialized_end=279
+  _UPDATEPOLICYRESP._serialized_start=281
+  _UPDATEPOLICYRESP._serialized_end=299
+  _ENVSPECREQ._serialized_start=301
+  _ENVSPECREQ._serialized_end=313
+  _ENVSPECRESP._serialized_start=315
+  _ENVSPECRESP._serialized_end=399
+  _COLLECTSERVICE._serialized_start=402
+  _COLLECTSERVICE._serialized_end=547
 # @@protoc_insertion_point(module_scope)

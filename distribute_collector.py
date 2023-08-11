@@ -21,7 +21,10 @@ class DriverCollector:
         self.channels = []
         self.stubs = []
         for addr in self.collector_addrs:
-            channel = grpc.insecure_channel(addr)
+            max_message_length = 300 * 1024 * 1024  # Set the max message length to 300 MB
+            options = [('grpc.max_send_message_length', max_message_length),
+                ('grpc.max_receive_message_length', max_message_length)]
+            channel = grpc.insecure_channel(target = addr, options=options)
             stub = collector_pb2_grpc.CollectServiceStub(channel)
             self.channels.append(channel)
             self.stubs.append(stub)
@@ -87,9 +90,13 @@ class DriverCollector:
                     batch_done = False
                     eid = ep_id_cursor
                     ep_id_cursor+=1
+                    traj_obs = {
+                        "market": tf.reshape(resp.obs_market, [1,-1,]+ self.observation_spec["market"].shape.as_list()),
+                        "stateful": tf.reshape(resp.obs_stateful, [1,-1,]+ self.observation_spec["stateful"].shape.as_list())
+                    }
                     traj = trajectory.Trajectory(
                         tf.constant([resp.types],dtype=tf.int32),
-                        tf.constant([np.reshape(resp.observations, [-1,]+self.observation_spec.shape.as_list())],dtype=tf.float32),
+                        traj_obs,
                         tf.constant([resp.actions],dtype=tf.int64),
                         pickle.loads(resp.ps_infos),
                         tf.constant([resp.next_types],dtype=tf.int32),

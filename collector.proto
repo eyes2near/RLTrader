@@ -8,10 +8,11 @@ message Episode {
   repeated int32 types=1;
   repeated float discounts=2;
   repeated float rewards=3;
-  repeated float observations=4;
-  repeated int32 next_types=5;
-  repeated int64 actions=6;
-  bytes ps_infos=7;
+  repeated float obs_market=4;
+  repeated float obs_stateful=5;
+  repeated int32 next_types=6;
+  repeated int64 actions=7;
+  bytes ps_infos=8;
 }
 
 message UpdatePolicyReq {

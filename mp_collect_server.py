@@ -32,13 +32,13 @@ parser.add_argument("--env_creator", type=str, help="env creator module and func
 parser.add_argument("--port", type=str, help="port to start service")
 args = parser.parse_args()
 
-def worker_initializer():
-    import os
-    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
 class CollectorServicer(collector_pb2_grpc.CollectServiceServicer):
 
     def worker(id, to_worker_queue, to_driver_queue, env_creator, env_config_template, num_env):
+        #在收集env的time step的时候不需要gpu，这里给他禁止掉
+        import os
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
         envs = []
         partition_begin = num_env*id
         for env_id in range(num_env):
@@ -240,9 +240,9 @@ class CollectorServicer(collector_pb2_grpc.CollectServiceServicer):
 
                         ebuf = episode_buffer[episode_id]
                         observations = ebuf[0]
-                        obs_count = len(observations)
+                        obs_count = 0 if observations == [] else len(observations['market'])
                         step_types = ebuf[5]
-                        
+                        print("observation count -> ", obs_count)
                         # -> (1) 起始帧
                         if action == -860723 and obs_count==0:
                             #(1-1)
@@ -258,7 +258,7 @@ class CollectorServicer(collector_pb2_grpc.CollectServiceServicer):
                             rewards = ebuf[2]
                             n_step_types = ebuf[6]
                             st = tf.constant([2],dtype=tf.int32) if limit_as_last else ts.step_type
-                            ebuf[0] = tf.concat((observations,ts.observation),axis=0)
+                            ebuf[0] = tf.nest.map_structure(lambda *t:tf.concat(t,axis=0),*[observations,ts.observation])
                             ebuf[5] = tf.concat((step_types,st),axis=0)
                             ebuf[1] = tf.concat((discounts,ts.discount),axis=0)
                             ebuf[2] = tf.concat((rewards,ts.reward),axis=0)
@@ -276,7 +276,8 @@ class CollectorServicer(collector_pb2_grpc.CollectServiceServicer):
                                 types=step_types.numpy().tolist(),
                                 discounts=discounts.numpy().tolist()+ts.discount.numpy().tolist(),
                                 rewards=rewards.numpy().tolist()+ts.reward.numpy().tolist(),
-                                observations=tf.reshape(observations,(-1,)).numpy().tolist(),
+                                obs_market=tf.reshape(observations["market"],(-1,)).numpy().tolist(),
+                                obs_stateful=tf.reshape(observations["stateful"],(-1,)).numpy().tolist(),
                                 next_types=n_step_types.numpy().tolist()+[0],
                                 actions=actions.numpy().tolist(),
                                 ps_infos=pickle.dumps(tf.nest.map_structure(lambda t:tf.expand_dims(t,axis=0),psinfos)),
@@ -370,9 +371,12 @@ class CollectorServicer(collector_pb2_grpc.CollectServiceServicer):
             action_spec=pickle.dumps(self.act_spec),
             time_step_spec=pickle.dumps(self.ts_spec)
         )
-    
+
 def serve(num_worker, num_env, max_steps, env_creator, port):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
+    max_message_length = 300 * 1024 * 1024  # Set the max message length to 300 MB
+    options = [('grpc.max_send_message_length', max_message_length),
+           ('grpc.max_receive_message_length', max_message_length)]
+    server = grpc.server(thread_pool=futures.ThreadPoolExecutor(max_workers=1),options=options)
     servicer = CollectorServicer(env_creator, num_worker, num_env, max_steps)
     collector_pb2_grpc.add_CollectServiceServicer_to_server(servicer, server)
     server.add_insecure_port('0.0.0.0:'+str(port))
@@ -380,10 +384,15 @@ def serve(num_worker, num_env, max_steps, env_creator, port):
     return server, servicer
 
 if __name__ == '__main__':
-    #選取指定id的GPU，并爲其分配2g的内存
-    if args.gpu in (0,1,2,3,4,5,6,7,8):
+    #選取指定id的GPU，并爲其分配3g的内存
+    gpu = None
+    if args.gpu:
+        gpu = args.gpu
+    else:
+        gpu = 0
+    if gpu in (0,1,2,3,4,5,6,7,8):
         import os
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
         gpus = tf.config.list_physical_devices('GPU')
         tf.config.set_logical_device_configuration(gpus[0], [
             tf.config.LogicalDeviceConfiguration(memory_limit=2048)

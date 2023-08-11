@@ -3,7 +3,7 @@ from tensortrade.feed.core.base import Stream,IterableStream
 from tensortrade.env.generic import TradingEnv
 from tensortrade.env.default import observers
 import random
-from gym.spaces import Box
+from gym.spaces import Box,Dict
 import numpy as np
 
 class TensorTradeExtend:
@@ -77,26 +77,32 @@ class TensorTradeExtend:
             window_size=window_size,
             min_periods=min_periods
         )
-        _, n_f = observer._observation_space.shape
-        observer._observation_space = Box(
-            low=observer._observation_lows,
-            high=observer._observation_highs,
-            shape=(observer.window_size, n_f+1),
-            dtype=observer._observation_dtype
-        )
+        #觀察空間包括{"market": olhcv_data, "stateful": stateful_data, "news": news_data}
+        #其中stateful_data包括當前目標貨幣的價格，usdt賬戶，目標貨幣的市值(以usdt計價)
+        #news_data是抓取的相關新聞，經過chatgpt對一系列問題的打分。
+        market_space = observer._observation_space
+        stateful_data = Box(low=0.0, high=np.inf, shape=(3,), dtype=np.float32)
+        #TODO:news 以後再實現
+        #news_space = Box(low=0.0, high=1.0, shape=(1,), dtype=np.float32)
+
+        observer._observation_space = Dict({
+            "market": market_space,
+            "stateful": stateful_data,
+            #"news": news_space
+        })
+
         current_observe = observer.observe
         def new_observe(env: 'TradingEnv') -> np.array:
             obs = current_observe(env)
+            balances = portfolio.total_balances
+            usdt_balance = balances[0].as_float()
+            coin_balance = balances[1].as_float()
+            # print("balance->",balances[0], balances[1])
             #add price to observation
             price = env.price.previous
-            price_array = np.pad(
-                np.array([price]), 
-                (observer.window_size-1,0), 
-                'constant', 
-                constant_values=(0,0)).reshape(observer.window_size, 1)
-            obs = np.hstack((price_array,obs))
-            obs = obs.astype(observer._observation_dtype)
-            return obs
+            stateful_obs = np.array([price, usdt_balance, coin_balance * price]).astype(observer._observation_dtype)
+            return {"market": obs, "stateful": stateful_obs}
+        
         observer.observe = new_observe
         return observer
     

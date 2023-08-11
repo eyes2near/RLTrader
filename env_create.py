@@ -90,7 +90,8 @@ def train_env(config=env_config):
     feed.compile()
 
     reward_scheme = rewards.SimpleProfit(window_size=config["reward_window_size"])
-    action_scheme = actions.BSH(cash=cash, asset=asset)
+    #action_scheme = actions.BSH(cash=cash, asset=asset)
+    action_scheme = actions.SimpleOrders()
     action_scheme.portfolio = portfolio
 
     min_periods = config["window_size"]-1
@@ -166,7 +167,7 @@ def eval_env(config=env_config):
     ])
 
     #dataset = addIndicators(dataset)
-    
+
     features = []
     for c in dataset.columns[1:]:
         s = Stream.source(list(dataset[c]), dtype="float").rename(dataset[c].name)

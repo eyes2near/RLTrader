@@ -17,8 +17,8 @@ DEFAULT_RF_AGENT_CONFIG.fc_layer_params=(512,128)
 DEFAULT_PPO_AGENT_CONFIG = AgentConfig()
 # Training params
 DEFAULT_PPO_AGENT_CONFIG.num_iterations=1600
-DEFAULT_PPO_AGENT_CONFIG.actor_fc_layers=(512, 256)
-DEFAULT_PPO_AGENT_CONFIG.value_fc_layers=(512, 256)
+DEFAULT_PPO_AGENT_CONFIG.actor_fc_layers=(512, 128)
+DEFAULT_PPO_AGENT_CONFIG.value_fc_layers=(512, 128)
 DEFAULT_PPO_AGENT_CONFIG.learning_rate=3e-4
 DEFAULT_PPO_AGENT_CONFIG.collect_sequence_length=2048
 DEFAULT_PPO_AGENT_CONFIG.minibatch_size=64
@@ -38,36 +38,46 @@ DEFAULT_PPO_AGENT_CONFIG.summarize_grads_and_vars=False
 DEFAULT_PPO_AGENT_CONFIG.compute_value_and_advantage_in_train=True
 DEFAULT_PPO_AGENT_CONFIG.update_normalizers_in_train=False
 
-def rf_agent(config=DEFAULT_RF_AGENT_CONFIG):
-    learning_rate=config.lr
-    fc_layer_params = config.fc_layer_params
-    train_step_counter = tf.Variable(0)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-    actor_net = actor_distribution_network.ActorDistributionNetwork(
-        config.observation_spec,
-        config.action_spec,
-        fc_layer_params=fc_layer_params)
-    agent = reinforce_agent.ReinforceAgent(
-        config.time_step_spec,
-        config.action_spec,
-        actor_network=actor_net,
-        optimizer=optimizer,
-        normalize_returns=True,
-        train_step_counter=train_step_counter)
-    agent.initialize()
-    return (train_step_counter, agent)
+# def rf_agent(config=DEFAULT_RF_AGENT_CONFIG):
+#     learning_rate=config.lr
+#     fc_layer_params = config.fc_layer_params
+#     train_step_counter = tf.Variable(0)
+#     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+#     actor_net = actor_distribution_network.ActorDistributionNetwork(
+#         config.observation_spec,
+#         config.action_spec,
+#         fc_layer_params=fc_layer_params)
+#     agent = reinforce_agent.ReinforceAgent(
+#         config.time_step_spec,
+#         config.action_spec,
+#         actor_network=actor_net,
+#         optimizer=optimizer,
+#         normalize_returns=True,
+#         train_step_counter=train_step_counter)
+#     agent.initialize()
+#     return (train_step_counter, agent)
 
 def ppo_agent(config=DEFAULT_PPO_AGENT_CONFIG):
-    attension_layer = createActorAttensionLayers()
+    preprocessing_layers = {
+            "market":createActorAttensionLayers(),
+            "stateful":tf.keras.models.Sequential([
+                tf.keras.layers.Dense(64,activation="relu"), 
+                tf.keras.layers.Dense(16,activation="relu"),
+                tf.keras.layers.Dropout(0.2)
+                ])
+        }
+    preprocessing_combiner = createObservationPreprocessCombiner()
     actor_net = actor_distribution_network.ActorDistributionNetwork(
         config.observation_spec,
         config.action_spec,
-        preprocessing_layers=attension_layer,
+        preprocessing_layers=preprocessing_layers,
+      preprocessing_combiner=preprocessing_combiner,
         fc_layer_params=config.actor_fc_layers)
     
     value_net = value_network.ValueNetwork(
       config.observation_spec,
-      preprocessing_layers=attension_layer,
+      preprocessing_layers=preprocessing_layers,
+      preprocessing_combiner=preprocessing_combiner,
       fc_layer_params=config.value_fc_layers,
       kernel_initializer=tf.keras.initializers.Orthogonal(seed=int(time.time())))
 
@@ -109,15 +119,18 @@ def ppo(obs_spec,action_spec,ts_spec):
     config.learning_rate_fn=lambda:config.learning_rate
     return ppo_agent(config)
 
-def rf(obs_spec,action_spec,ts_spec):
-    config = DEFAULT_RF_AGENT_CONFIG.copy()
-    config.observation_spec=obs_spec
-    config.action_spec=action_spec
-    config.time_step_spec=ts_spec
-    return rf_agent(config)
+# def rf(obs_spec,action_spec,ts_spec):
+#     config = DEFAULT_RF_AGENT_CONFIG.copy()
+#     config.observation_spec=obs_spec
+#     config.action_spec=action_spec
+#     config.time_step_spec=ts_spec
+#     return rf_agent(config)
 
 def createActorAttensionLayers(): 
-    return TransformerLayer(hidden_units=256, num_layers=4, num_attention_heads=8, dropout_rate=0.1)
+    return TransformerLayer(hidden_units=128, num_layers=4, num_attention_heads=6, dropout_rate=0.1)
+
+def createObservationPreprocessCombiner():
+    return tf.keras.layers.Concatenate(axis=-1)
     
 class TransformerLayer(tf.keras.layers.Layer):
     def __init__(self, hidden_units, num_layers, num_attention_heads, dropout_rate, **kwargs):
@@ -155,6 +168,8 @@ class TransformerLayer(tf.keras.layers.Layer):
             res_output = tf.keras.layers.LayerNormalization(epsilon=1e-6)(res_output)  # Layer normalization
 
         # Define the output layer
+        res_output = tf.keras.layers.Flatten()(res_output)  # Output layer
+
         return res_output
    
     def get_config(self):
