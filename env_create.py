@@ -40,18 +40,20 @@ def train(config=env_config):
     total_partitions = config['total_partitions']
     partition_overlap = config['partition_overlap']
     partition_id = config['partition_id']
+    if partition_id >= total_partitions:
+        partition_id = total_partitions - 1
     eval_len = config['eval_len']
-    if not hasattr(env_create,'train_dataframe'):
+    key = str(partition_id)
+    if not hasattr(env_create,'train_dataframes') or key not in env_create.train_dataframes:
         print(config)
-        full_dataframe = datas.load(config['exchange'], 
+        if not hasattr(env_create,'train_dataframe'):
+            env_create.train_dataframes={}
+            full_dataframe = datas.load(config['exchange'], 
                                         timeframes=[config['timeframe']], 
                                         since=config['since'], 
                                         until=config['until'])[config['timeframe']]
-        
-        env_create.train_dataframe = full_dataframe[:-eval_len]
-        env_create.eval_dataframe = full_dataframe[-eval_len:]
-
-
+            env_create.train_dataframe = full_dataframe[:-eval_len]
+            env_create.eval_dataframe = full_dataframe[-eval_len:]
         
         total_data_len = len(env_create.train_dataframe)
         partition_len = (total_data_len + (total_partitions-1)*partition_overlap)//total_partitions
@@ -63,20 +65,21 @@ def train(config=env_config):
             end = start + partition_len + mod if partition_id == 0 else start + partition_len
 
             # print("total->",total_data_len, " start->",start, " end->", end, "mod->",mod)
-            env_create.train_dataframe = env_create.train_dataframe[start:end]
+            env_create.train_dataframes[key] = env_create.train_dataframe[start:end]
         
         print('Collector dataset between: ',
-                env_create.train_dataframe['OpenTime'].iloc[0].astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
-                env_create.train_dataframe['OpenTime'].iloc[-1].astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
+                env_create.train_dataframes[key]['OpenTime'].iloc[0].astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
+                env_create.train_dataframes[key]['OpenTime'].iloc[-1].astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
               )
-    total_data_len = len(env_create.train_dataframe)
+    total_data_len = len(env_create.train_dataframes[key])
     env_max_data_len = config['env_max_data_len']
     #环境数据从env_full_dataframe随机取出,最长env_max_data_len个数据，尽量长于total_partitions*partition_overlap且尽量更长
     if total_data_len <= total_partitions*partition_overlap:
-        dataset = env_create.train_dataframe
-    if total_data_len>env_max_data_len:
-        begin_idx = random.randint(0,total_data_len-env_max_data_len)
-        dataset = env_create.train_dataframe[begin_idx:begin_idx+env_max_data_len]
+        dataset = env_create.train_dataframes[key]
+    else:
+        begin_idx = random.randint(0,total_data_len-total_partitions*partition_overlap)
+        end_idx = begin_idx+env_max_data_len if begin_idx+env_max_data_len <= total_data_len else total_data_len
+        dataset = env_create.train_dataframes[key][begin_idx:end_idx]
     print('Current env samples data between: ', dataset['OpenTime'].iloc[0].strftime('%Y-%m-%d %H:%M:%S'), dataset['OpenTime'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S'))
     commission = 0.002  # TODO: adjust according to your commission percentage, if present
     price = TensorTradeExtend.random_price_stream(dataset['Low'], dataset['High'], 'float', USD.precision).rename("USD-BTC")
