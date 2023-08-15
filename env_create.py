@@ -14,6 +14,7 @@ from tf_agents.environments.tf_py_environment import TFPyEnvironment
 
 import random
 import env_create
+from datetime import timezone
 
 env_config = {
         "window_size":144, 
@@ -30,7 +31,12 @@ env_config = {
         'eval_len':10000,
         }
 
-def train_env(config=env_config):
+def train(config=env_config):
+    if config != env_config :
+        cloned = env_config.copy()
+        cloned.update(config)
+        config = cloned
+    
     total_partitions = config['total_partitions']
     partition_overlap = config['partition_overlap']
     partition_id = config['partition_id']
@@ -41,15 +47,27 @@ def train_env(config=env_config):
                                         timeframes=[config['timeframe']], 
                                         since=config['since'], 
                                         until=config['until'])[config['timeframe']]
+        
         env_create.train_dataframe = full_dataframe[:-eval_len]
         env_create.eval_dataframe = full_dataframe[-eval_len:]
+
+
+        
         total_data_len = len(env_create.train_dataframe)
-        partition_len = (total_data_len - ((total_partitions-1)*partition_overlap))//total_partitions
+        partition_len = (total_data_len + (total_partitions-1)*partition_overlap)//total_partitions
+        mod = (total_data_len + (total_partitions-1)*partition_overlap)%total_partitions
+
         if partition_len >= total_partitions*partition_overlap:
-            env_create.train_dataframe = env_create.train_dataframe[partition_id*partition_len:(partition_id+1)*partition_len+partition_overlap]
+            start = partition_id*(partition_len - partition_overlap)
+            start = start if partition_id == 0 else start + mod
+            end = start + partition_len + mod if partition_id == 0 else start + partition_len
+
+            # print("total->",total_data_len, " start->",start, " end->", end, "mod->",mod)
+            env_create.train_dataframe = env_create.train_dataframe[start:end]
+        
         print('Collector dataset between: ',
-                env_create.train_dataframe['OpenTime'].iloc[0].strftime('%Y-%m-%d %H:%M:%S'),
-                env_create.train_dataframe['OpenTime'].iloc[-1].strftime('%Y-%m-%d %H:%M:%S'),
+                env_create.train_dataframe['OpenTime'].iloc[0].astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
+                env_create.train_dataframe['OpenTime'].iloc[-1].astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
               )
     total_data_len = len(env_create.train_dataframe)
     env_max_data_len = config['env_max_data_len']
@@ -135,7 +153,11 @@ def train_env(config=env_config):
     ret.tf = toTF(ret)
     return ret
 
-def eval_env(config=env_config):
+def eval(config=env_config):
+    if config != env_config :
+        cloned = env_config.copy()
+        cloned.update(config)
+        config = cloned
     eval_len = config['eval_len']
     if not hasattr(env_create,'eval_dataframe'):
         print(config)

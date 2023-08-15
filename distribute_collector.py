@@ -10,6 +10,12 @@ import collector_pb2_grpc
 from tf_agents.trajectories import trajectory
 import tensorflow as tf
 import numpy as np
+import redis
+
+redis_host = '10.10.1.127'  # Redis服务器地址
+redis_port = 6379         # Redis端口
+redis_db = 0             # 数据库编号
+redis_password = None    # Redis密码（如果有的话）
 
 class DriverCollector:
 
@@ -31,14 +37,22 @@ class DriverCollector:
         resp = stub.envspecs(collector_pb2.EnvSpecReq())
         self.observation_spec=pickle.loads(resp.observation_spec)
 
-    def update_collect_policy(self, counter, policy_vars):
+    def update_collect_policy(self, counter, policy, redis_addr = "10.10.1.127:6379"):
+        vars = policy.variables()
+        #set to redis
+        redis_conn = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db, password=redis_password)
+        cbytes = pickle.dumps(counter)
+        vbytes = pickle.dumps(vars)
+        print("var size->", len(vbytes)/1024/1024, "MB")
+        redis_conn.set("counter", cbytes)
+        redis_conn.set("variables", vbytes)
+        redis_conn.close()
         #sync variables to collectors
         futures = []
         for stub in self.stubs:
-            futures.append(stub.update_policy.future(
-                collector_pb2.UpdatePolicyReq(
-                    train_step_counter=pickle.dumps(counter),
-                    variables=pickle.dumps(policy_vars)
+            futures.append(stub.notify_policy_updated.future(
+                collector_pb2.NotifyPolicyUpdatedReq(
+                    redis_addr=redis_addr
                 )
             ))
         for f in futures:

@@ -127,7 +127,7 @@ def ppo(obs_spec,action_spec,ts_spec):
 #     return rf_agent(config)
 
 def createActorAttensionLayers(): 
-    return TransformerLayer(hidden_units=128, num_layers=4, num_attention_heads=6, dropout_rate=0.1)
+    return TransformerLayer(hidden_units=64, num_layers=4, num_attention_heads=6, dropout_rate=0.1)
 
 def createObservationPreprocessCombiner():
     return tf.keras.layers.Concatenate(axis=-1)

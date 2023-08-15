@@ -15,12 +15,11 @@ message Episode {
   bytes ps_infos=8;
 }
 
-message UpdatePolicyReq {
-    bytes train_step_counter = 1;
-    bytes variables = 2;
+message NotifyPolicyUpdatedReq {
+    string redis_addr = 1;
 }
 
-message UpdatePolicyResp {}
+message NotifyPolicyUpdatedResp {}
 
 message EnvSpecReq {}
 
@@ -32,6 +31,6 @@ message EnvSpecResp {
 
 service CollectService {
   rpc collect (CollectReq) returns (stream Episode);
-  rpc update_policy (UpdatePolicyReq) returns (UpdatePolicyResp);
+  rpc notify_policy_updated (NotifyPolicyUpdatedReq) returns (NotifyPolicyUpdatedResp);
   rpc envspecs (EnvSpecReq) returns (EnvSpecResp);
 }

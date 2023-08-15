@@ -22,6 +22,8 @@ from tf_agents.environments.tf_py_environment import TFPyEnvironment
 import time
 import multiprocessing
 import signal
+import redis
+import netifaces
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--gpu", type=int, help="gpu id to use in this process")
@@ -99,6 +101,7 @@ class CollectorServicer(collector_pb2_grpc.CollectServiceServicer):
         self.collect_policy = agent.collect_policy
         self.stateful = agent.collect_policy.get_initial_state(batch_size=1) != ()
         self.workload_p = 0.8
+        self.ipv4_addrs = get_local_ipv4_addresses()
         def handler(signum, frame):
             if hasattr(handler,'_called'):
                 return
@@ -116,13 +119,20 @@ class CollectorServicer(collector_pb2_grpc.CollectServiceServicer):
         signal.signal(signal.SIGINT, handler)
         super().__init__()
 
-    def update_policy(self, request, context):
-        self.train_step_counter = pickle.loads(request.train_step_counter)
-        variables = pickle.loads(request.variables)
+    def notify_policy_updated(self, request, context):
+        redis_addr = request.redis_addr
+        redis_host, redis_port = redis_addr.split(':')
+        if redis_host in self.ipv4_addrs :
+            redis_host = redis_host.replace(redis_host,"127.0.0.1")
+        redis_port = int(redis_port)
+        redis_conn = redis.StrictRedis(host=redis_host, port=redis_port)
+        self.train_step_counter = pickle.loads(redis_conn.get("counter"))
+        variables = pickle.loads(redis_conn.get("variables"))
+        redis_conn.close()
         for variable, value in zip(
             tf.nest.flatten(self.collect_policy.variables()), tf.nest.flatten(variables)):
             variable.assign(value)
-        return collector_pb2.UpdatePolicyResp()
+        return collector_pb2.NotifyPolicyUpdatedResp()
     
     def collect(self, request, context):
         # 由於timestep的數據是由to_driver_queue獲取的，有的時候這個queue中要等待worker向其中進行填充，這就造成了一些阻塞時間
@@ -383,6 +393,17 @@ def serve(num_worker, num_env, max_steps, env_creator, port):
     server.start()
     return server, servicer
 
+def get_local_ipv4_addresses():
+    local_ipv4_addresses = []
+    for interface in netifaces.interfaces():
+        addresses = netifaces.ifaddresses(interface)
+        if netifaces.AF_INET in addresses:
+            for address_info in addresses[netifaces.AF_INET]:
+                ip = address_info['addr']
+                if ip != '127.0.0.1' and ip not in local_ipv4_addresses:
+                    local_ipv4_addresses.append(ip)
+    return local_ipv4_addresses
+
 if __name__ == '__main__':
     #選取指定id的GPU，并爲其分配3g的内存
     gpu = None
@@ -419,7 +440,7 @@ if __name__ == '__main__':
 
     env_cfg = {}
     if not args.env_creator :
-        args.env_creator = "env_create.train_env"
+        args.env_creator = "env_create.train"
     if args.env_creator:
         import functools
         import importlib

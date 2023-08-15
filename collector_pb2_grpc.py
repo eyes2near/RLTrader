@@ -19,10 +19,10 @@ class CollectServiceStub(object):
                 request_serializer=collector__pb2.CollectReq.SerializeToString,
                 response_deserializer=collector__pb2.Episode.FromString,
                 )
-        self.update_policy = channel.unary_unary(
-                '/CollectService/update_policy',
-                request_serializer=collector__pb2.UpdatePolicyReq.SerializeToString,
-                response_deserializer=collector__pb2.UpdatePolicyResp.FromString,
+        self.notify_policy_updated = channel.unary_unary(
+                '/CollectService/notify_policy_updated',
+                request_serializer=collector__pb2.NotifyPolicyUpdatedReq.SerializeToString,
+                response_deserializer=collector__pb2.NotifyPolicyUpdatedResp.FromString,
                 )
         self.envspecs = channel.unary_unary(
                 '/CollectService/envspecs',
@@ -40,7 +40,7 @@ class CollectServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def update_policy(self, request, context):
+    def notify_policy_updated(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -60,10 +60,10 @@ def add_CollectServiceServicer_to_server(servicer, server):
                     request_deserializer=collector__pb2.CollectReq.FromString,
                     response_serializer=collector__pb2.Episode.SerializeToString,
             ),
-            'update_policy': grpc.unary_unary_rpc_method_handler(
-                    servicer.update_policy,
-                    request_deserializer=collector__pb2.UpdatePolicyReq.FromString,
-                    response_serializer=collector__pb2.UpdatePolicyResp.SerializeToString,
+            'notify_policy_updated': grpc.unary_unary_rpc_method_handler(
+                    servicer.notify_policy_updated,
+                    request_deserializer=collector__pb2.NotifyPolicyUpdatedReq.FromString,
+                    response_serializer=collector__pb2.NotifyPolicyUpdatedResp.SerializeToString,
             ),
             'envspecs': grpc.unary_unary_rpc_method_handler(
                     servicer.envspecs,
@@ -98,7 +98,7 @@ class CollectService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def update_policy(request,
+    def notify_policy_updated(request,
             target,
             options=(),
             channel_credentials=None,
@@ -108,9 +108,9 @@ class CollectService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/CollectService/update_policy',
-            collector__pb2.UpdatePolicyReq.SerializeToString,
-            collector__pb2.UpdatePolicyResp.FromString,
+        return grpc.experimental.unary_unary(request, target, '/CollectService/notify_policy_updated',
+            collector__pb2.NotifyPolicyUpdatedReq.SerializeToString,
+            collector__pb2.NotifyPolicyUpdatedResp.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

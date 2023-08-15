@@ -23,5 +23,9 @@ obs = LocalObserver()
 
 from distribute_collector import DriverCollector
 collector = DriverCollector(addrs,obs.observe,20)
-collector.collect(3)
+collector.collect(1)
+ppo.train(obs.trajs[0])
+
 btrajs=tf.nest.map_structure(lambda *t:tf.concat(t,axis=0),*obs.trajs)
+
+
