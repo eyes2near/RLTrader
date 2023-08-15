@@ -12,8 +12,6 @@ import tensorflow as tf
 import numpy as np
 import redis
 
-redis_host = '10.10.1.127'  # Redis服务器地址
-redis_port = 6379         # Redis端口
 redis_db = 0             # 数据库编号
 redis_password = None    # Redis密码（如果有的话）
 
@@ -40,9 +38,12 @@ class DriverCollector:
         self.observation_spec=pickle.loads(resp.observation_spec)
 
     def update_collect_policy(self, counter, policy, redis_addr = "127.0.0.1:6379"):
+        parts = redis_addr.split(':')
+        host = parts[0]  # 第一部分是 host
+        port = int(parts[1])  # 第二部分是 port，将其转换为整数
         vars = policy.variables()
         #set to redis
-        redis_conn = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db, password=redis_password)
+        redis_conn = redis.StrictRedis(host=host, port=port, db=redis_db, password=redis_password)
         cbytes = pickle.dumps(counter)
         vbytes = pickle.dumps(vars)
         print("var size->", len(vbytes)/1024/1024, "MB")
