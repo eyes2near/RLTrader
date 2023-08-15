@@ -35,9 +35,11 @@ class DriverCollector:
             self.channels.append(channel)
             self.stubs.append(stub)
         resp = stub.envspecs(collector_pb2.EnvSpecReq())
+        self.action_spec=pickle.loads(resp.action_spec)
+        self.time_step_spec=pickle.loads(resp.time_step_spec)
         self.observation_spec=pickle.loads(resp.observation_spec)
 
-    def update_collect_policy(self, counter, policy, redis_addr = "10.10.1.127:6379"):
+    def update_collect_policy(self, counter, policy, redis_addr = "127.0.0.1:6379"):
         vars = policy.variables()
         #set to redis
         redis_conn = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db, password=redis_password)
