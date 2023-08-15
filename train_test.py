@@ -15,7 +15,7 @@ class LocalObserver:
 obs = LocalObserver()
 from distribute_collector import DriverCollector
 collector = DriverCollector(addrs,obs.observe,60)
-counter,ppo=agent_create.ppo(collector.tf.observation_spec, collector.tf.action_spec, collector.tf.time_step_spec)
+counter,ppo=agent_create.ppo(collector.observation_spec, collector.action_spec, collector.time_step_spec)
 
 collector.collect(1)
 ppo.train(obs.trajs[0])
