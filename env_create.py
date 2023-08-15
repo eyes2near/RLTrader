@@ -22,7 +22,7 @@ env_config = {
         'reward_window_size':60, 
         'exchange':'binance', 
         'since':'2018-01', 
-        'until':'2023-01',
+        'until':'2023-08',
         'timeframe':'1m',
         'total_partitions':11,
         'env_max_data_len':10000,
