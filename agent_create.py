@@ -12,13 +12,13 @@ class AgentConfig:
 
 DEFAULT_RF_AGENT_CONFIG = AgentConfig()
 DEFAULT_RF_AGENT_CONFIG.lr = 1e-3
-DEFAULT_RF_AGENT_CONFIG.fc_layer_params=(512,128)
+DEFAULT_RF_AGENT_CONFIG.fc_layer_params=(256,128)
 
 DEFAULT_PPO_AGENT_CONFIG = AgentConfig()
 # Training params
 DEFAULT_PPO_AGENT_CONFIG.num_iterations=1600
-DEFAULT_PPO_AGENT_CONFIG.actor_fc_layers=(512, 128)
-DEFAULT_PPO_AGENT_CONFIG.value_fc_layers=(512, 128)
+DEFAULT_PPO_AGENT_CONFIG.actor_fc_layers=(256, 128)
+DEFAULT_PPO_AGENT_CONFIG.value_fc_layers=(256, 128)
 DEFAULT_PPO_AGENT_CONFIG.learning_rate=3e-4
 DEFAULT_PPO_AGENT_CONFIG.collect_sequence_length=2048
 DEFAULT_PPO_AGENT_CONFIG.minibatch_size=64
@@ -61,7 +61,7 @@ def ppo_agent(config=DEFAULT_PPO_AGENT_CONFIG):
     preprocessing_layers = {
             "market":createActorAttensionLayers(),
             "stateful":tf.keras.models.Sequential([
-                tf.keras.layers.Dense(64,activation="relu"), 
+                tf.keras.layers.Dense(32,activation="relu"), 
                 tf.keras.layers.Dense(16,activation="relu"),
                 tf.keras.layers.Dropout(0.2)
                 ])
@@ -127,7 +127,7 @@ def ppo(obs_spec,action_spec,ts_spec):
 #     return rf_agent(config)
 
 def createActorAttensionLayers(): 
-    return TransformerLayer(hidden_units=64, num_layers=4, num_attention_heads=6, dropout_rate=0.1)
+    return TransformerLayer(hidden_units=32, num_layers=4, num_attention_heads=4, dropout_rate=0.1)
 
 def createObservationPreprocessCombiner():
     return tf.keras.layers.Concatenate(axis=-1)
